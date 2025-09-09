@@ -1,6 +1,5 @@
 package com.example.Rapid_Assignment_backend.controller
 
-import com.example.Rapid_Assignment_backend.dto.ProfileRequest
 import com.example.Rapid_Assignment_backend.dto.ProfileResponse
 import com.example.Rapid_Assignment_backend.dto.ProfileUpdateRequest
 import com.example.Rapid_Assignment_backend.services.ProfileService
