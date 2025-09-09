@@ -10,7 +10,9 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.multipart.MultipartFile
 
 @RestController
 @RequestMapping("/profile")
@@ -19,8 +21,9 @@ class ProfileController(
 ) {
 
     @PostMapping
-    fun profile(@RequestBody body: ProfileRequest): ResponseEntity<ProfileResponse> {
-        val response = profileService.profile(body.token)
+    fun profile(httpServletRequest: HttpServletRequest): ResponseEntity<ProfileResponse> {
+        val token = getHeader(httpServletRequest)
+        val response = profileService.profile(token)
         return ResponseEntity.ok(response)
     }
 
@@ -29,8 +32,18 @@ class ProfileController(
         @RequestBody body: ProfileUpdateRequest,
         httpServletRequest: HttpServletRequest
     ): ResponseEntity<ProfileResponse> {
-        val token = httpServletRequest.getHeader("X-Session-Token") ?: return ResponseEntity.badRequest().build()
+        val token = getHeader(httpServletRequest)
         val response = profileService.updateProfile(token = token, request = body)
+        return ResponseEntity.ok(response)
+    }
+
+    @PostMapping("/upload-profile-pic")
+    fun uploadProfilePic(
+        @RequestParam("file") file: MultipartFile,
+        httpServletRequest: HttpServletRequest
+    ) : ResponseEntity<ProfileResponse> {
+        val token = getHeader(httpServletRequest)
+        val response = profileService.uploadProfilePic(token = token, file = file)
         return ResponseEntity.ok(response)
     }
 }

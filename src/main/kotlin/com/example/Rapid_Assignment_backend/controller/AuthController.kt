@@ -34,9 +34,8 @@ class AuthController(
     }
 
     @DeleteMapping("/logout")
-    fun logout(request: HttpServletRequest): ResponseEntity<ApiResponse> {
-        val token = request.getHeader("X-Session-Token") ?: return ResponseEntity.badRequest()
-            .body(ApiResponse(success = false, message = "Missing token"))
+    fun logout(httpServletRequest: HttpServletRequest): ResponseEntity<ApiResponse> {
+        val token = getHeader(httpServletRequest)
         authService.logOut(token)
         return ResponseEntity.ok(ApiResponse(success = true, message = "Logged out successfully"))
     }

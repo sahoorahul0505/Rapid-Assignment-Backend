@@ -130,7 +130,7 @@ class AuthService(
             ?: throw IllegalArgumentException("No account with this email.")
 
         val resetOtp = passwordResetOtpRepository.findByUserId(userId = user.id!!)
-            ?: throw IllegalArgumentException("No OPT found for this account.")
+            ?: throw IllegalArgumentException("No OPT found for this account. maybe already used.")
 
         if (resetOtp.expiresAt.isBefore(Instant.now())) {
             throw IllegalArgumentException("OTP expired")

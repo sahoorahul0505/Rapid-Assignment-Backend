@@ -13,5 +13,6 @@ data class User(
     val name : String,
     val rollNumber : String,
     val branch : String,
+    val profilePic : String? = null,
     val createdAt : Instant = Instant.now()
 )
