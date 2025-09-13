@@ -27,9 +27,15 @@ class TeacherQuizController(
     @PostMapping("/create-quiz")
     fun createQuiz(
         @RequestBody body: CreateQuizRequest
-    ): ResponseEntity<QuizResponse> {
-        val response = quizService.createQuiz(body)
-        return ResponseEntity.ok(QuizResponse(response))
+    ): ResponseEntity<ApiResponse<QuizResponse>> {
+        val result = quizService.createQuiz(body)
+        return ResponseEntity.ok(
+            ApiResponse(
+                statusCode = okStatusCode,
+                message = "Quiz created successfully",
+                data = result
+            )
+        )
     }
 
     @PostMapping("/add-question")

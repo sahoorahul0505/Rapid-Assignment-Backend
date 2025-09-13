@@ -25,7 +25,7 @@ class TeacherAuthController(
 
     @PostMapping("/send-registration-otp")
     fun sendOtpForRegister(@RequestBody body: RegisterOtpRequest): ResponseEntity<ApiResponse<Unit>?> {
-        val result = teacherAuthService.sendOtpForRegistrationTeacher(body)
+        teacherAuthService.sendOtpForRegistrationTeacher(body)
         return ResponseEntity.ok(ApiResponse(statusCode = okStatus, message = "OTP sent to your Email"))
     }
 
@@ -42,12 +42,11 @@ class TeacherAuthController(
 
     @PostMapping("/send-login-otp")
     fun sendOtpForLoginTeacher(@RequestBody body: CommonLoginRequest): ResponseEntity<ApiResponse<Unit>?> {
-        val result = teacherAuthService.sendOtpForLogin(body)
+        teacherAuthService.sendOtpForLogin(body)
         return ResponseEntity.ok(
             ApiResponse(
                 statusCode = okStatus,
-                message = "Otp sent to your Email",
-                data = result
+                message = "Otp sent to your Email"
             )
         )
     }

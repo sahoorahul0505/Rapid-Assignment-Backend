@@ -2,15 +2,11 @@ package com.example.Rapid_Assignment_backend.configuration
 
 import com.example.Rapid_Assignment_backend.configuration.errorHandler.InvalidRequestException
 import com.example.Rapid_Assignment_backend.configuration.errorHandler.NotFoundException
-import com.example.Rapid_Assignment_backend.configuration.errorHandler.UnAuthorizedException
 import com.example.Rapid_Assignment_backend.repositories.SessionRepository
-import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.stereotype.Component
-import org.springframework.web.filter.OncePerRequestFilter
 import org.springframework.web.servlet.HandlerInterceptor
-import java.lang.Exception
 import java.time.Instant
 
 @Component

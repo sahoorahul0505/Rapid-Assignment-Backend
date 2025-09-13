@@ -21,14 +21,14 @@ import org.springframework.web.bind.annotation.RestController
 class UserAuthController(
     private val userAuthService: UserAuthService
 ) {
-    val okStatus = HttpStatus.OK.value()
+    val okStatusCode = HttpStatus.OK.value()
 
     @PostMapping("/send-registration-otp")
     fun sendOtpForRegistration(@RequestBody body: UserRegisterOtpRequest): ResponseEntity<ApiResponse<Unit>?> {
         userAuthService.sendOtpForRegistrationUser(body)
         return ResponseEntity.ok(
             ApiResponse(
-                statusCode = okStatus,
+                statusCode = okStatusCode,
                 message = "OTP sent to your Email"
             )
         )
@@ -42,7 +42,7 @@ class UserAuthController(
         val result = userAuthService.verifyOtpAndRegisterUser(body, otp)
         return ResponseEntity.ok(
             ApiResponse(
-                statusCode = okStatus,
+                statusCode = okStatusCode,
                 message = "Registration successful",
                 data = result
             )
@@ -54,7 +54,7 @@ class UserAuthController(
         userAuthService.sendOtpForLogin(body)
         return ResponseEntity.ok(
             ApiResponse(
-                statusCode = okStatus,
+                statusCode = okStatusCode,
                 message = "OTP sent to your Email"
             )
         )
@@ -65,7 +65,7 @@ class UserAuthController(
         val result = userAuthService.verifyOtpAndLogin(body, otp)
         return ResponseEntity.ok(
             ApiResponse(
-                statusCode = okStatus,
+                statusCode = okStatusCode,
                 message = "Login successful",
                 data = result
             )
@@ -75,10 +75,10 @@ class UserAuthController(
 
     @PostMapping("/forgot-password-otp")
     fun sendOtpForForgotPassword(@RequestBody body: ForgotPasswordRequest): ResponseEntity<ApiResponse<Unit>?> {
-        val result = userAuthService.sendOtpForForgotPassword(body)
+        userAuthService.sendOtpForForgotPassword(body)
         return ResponseEntity.ok(
             ApiResponse(
-                statusCode = HttpStatus.OK.value(),
+                statusCode = okStatusCode,
                 message = "OTP sent to your Email"
             )
         )
@@ -92,7 +92,7 @@ class UserAuthController(
         userAuthService.validateOtpAndResetPassword(request = body, otp)
         return ResponseEntity.ok(
             ApiResponse(
-                statusCode = HttpStatus.OK.value(),
+                statusCode = okStatusCode,
                 message = "Password update successfully, We have sent password to your Email."
             )
         )

@@ -9,6 +9,7 @@ import com.example.Rapid_Assignment_backend.domain.model.Quiz
 import com.example.Rapid_Assignment_backend.dto.quiz.AddQuestionRequest
 import com.example.Rapid_Assignment_backend.dto.quiz.CreateQuizRequest
 import com.example.Rapid_Assignment_backend.dto.quiz.GetQuestionsRequest
+import com.example.Rapid_Assignment_backend.dto.quiz.QuizResponse
 import com.example.Rapid_Assignment_backend.dto.quiz.TeacherQuestionsResponse
 import com.example.Rapid_Assignment_backend.dto.quiz.TeacherQuizzesResponse
 import com.example.Rapid_Assignment_backend.repositories.QuestionRepository
@@ -24,7 +25,7 @@ class TeacherQuizService(
 ) {
 
 
-    fun createQuiz(request: CreateQuizRequest): String {
+    fun createQuiz(request: CreateQuizRequest): QuizResponse {
         val session = SessionContext.getSession()
         val teacher = teacherRepository.findById(session.userId).orElseThrow {
             NotFoundException("Account not found")
@@ -40,7 +41,7 @@ class TeacherQuizService(
 
         quizRepository.save(quizEntity)
 
-        return quizAccessCode
+        return QuizResponse(quizAccessCode)
     }
 
     fun addQuestion(request: AddQuestionRequest) {

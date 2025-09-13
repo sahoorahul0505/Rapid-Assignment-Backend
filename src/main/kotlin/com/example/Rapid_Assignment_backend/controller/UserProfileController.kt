@@ -38,12 +38,11 @@ class UserProfileController(
         @RequestBody body: UserProfileUpdateRequest,
         @RequestParam password : String
     ): ResponseEntity<ApiResponse<Unit>?> {
-        val result = profileService.updateProfile(request = body, password = password)
+        profileService.updateProfile(request = body, password = password)
         return ResponseEntity.ok(
             ApiResponse(
                 statusCode = okStausCode,
-                message = "Profile update successfully",
-                data = result
+                message = "Profile update successfully"
             )
         )
     }
