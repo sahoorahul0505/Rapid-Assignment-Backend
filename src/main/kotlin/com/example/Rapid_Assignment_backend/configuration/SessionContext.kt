@@ -1,6 +1,6 @@
 package com.example.Rapid_Assignment_backend.configuration
 
-import com.example.Rapid_Assignment_backend.domain.model.common.Session
+import com.example.Rapid_Assignment_backend.domain.model.Session
 
 object SessionContext {
     private val currentSession = ThreadLocal<Session?>()

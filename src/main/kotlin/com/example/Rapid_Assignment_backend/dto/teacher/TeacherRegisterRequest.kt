@@ -4,5 +4,5 @@ data class TeacherRegisterRequest(
     val name : String,
     val email : String,
     val password : String,
-    val teacherCode : String,
+    val teacherCode : String
 )
