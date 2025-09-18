@@ -1,6 +1,6 @@
 package com.example.Rapid_Assignment_backend.dto.quiz
 
-data class TeacherQuestionsResponse(
+data class TeacherQuizQuestionResponse(
     val id: String?,
     val questionText: String,
     val options: List<String>,

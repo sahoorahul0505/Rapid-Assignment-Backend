@@ -6,8 +6,8 @@ import org.springframework.data.mongodb.repository.MongoRepository
 import org.springframework.stereotype.Repository
 
 @Repository
-interface QuizRepository : MongoRepository<Quiz, ObjectId>{
-    fun findByQuizAccessCode(quizAccessCode: String) : Quiz?
+interface QuizRepository : MongoRepository<Quiz, String>{
+    fun findByQuizCode(quizCode: String) : Quiz?
     fun findAllByTeacherCode(teacherCode: String) : List<Quiz>
-    fun findByQuizAccessCodeAndTeacherCode(quizAccessCode: String, teacherCode : String) : Quiz?
+    fun findByQuizCodeAndTeacherCode(quizCode: String, teacherCode : String) : Quiz?
 }

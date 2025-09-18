@@ -1,15 +1,17 @@
 package com.example.Rapid_Assignment_backend.services
 
 import com.example.Rapid_Assignment_backend.configuration.SessionContext
+import com.example.Rapid_Assignment_backend.configuration.errorHandler.BadRequestException
 import com.example.Rapid_Assignment_backend.configuration.errorHandler.NotFoundException
 import com.example.Rapid_Assignment_backend.domain.model.QuizResults
-import com.example.Rapid_Assignment_backend.dto.quiz.GetQuestionsRequest
-import com.example.Rapid_Assignment_backend.dto.quiz.QuizSubmissionRequest
+import com.example.Rapid_Assignment_backend.dto.quiz.AnswerRequest
 import com.example.Rapid_Assignment_backend.dto.quiz.QuizSubmitResponse
-import com.example.Rapid_Assignment_backend.dto.quiz.UserQuestionResponse
+import com.example.Rapid_Assignment_backend.dto.quiz.UserQuizQuestionResponse
+import com.example.Rapid_Assignment_backend.dto.quiz.UsersQuizResponse
 import com.example.Rapid_Assignment_backend.repositories.QuestionRepository
 import com.example.Rapid_Assignment_backend.repositories.QuizRepository
 import com.example.Rapid_Assignment_backend.repositories.QuizResultRepository
+import com.example.Rapid_Assignment_backend.repositories.TeacherRepository
 import com.example.Rapid_Assignment_backend.repositories.UserRepository
 import org.springframework.stereotype.Service
 
@@ -18,37 +20,58 @@ class UserQuizService(
     private val quizRepository: QuizRepository,
     private val quizResultsRepository: QuizResultRepository,
     private val questionRepository: QuestionRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val teacherRepository: TeacherRepository
 ) {
-    fun getAllQuestionsForUser(request: GetQuestionsRequest): List<UserQuestionResponse> {
-        val quizEntity = quizRepository.findByQuizAccessCode(request.quizAccessCode)
-            ?: throw NotFoundException("No quiz found with ${request.quizAccessCode}")
-        val questionEntity = questionRepository.findAllByQuizId(quizEntity.id!!)
-        if (questionEntity.isEmpty()) throw NotFoundException("No question found")
 
-        return questionEntity.map {
-            UserQuestionResponse(
-                id = it.id?.toHexString(),
+    fun getQuizForUser(quizCode: String): UsersQuizResponse {
+        val savedQuiz = quizRepository.findByQuizCode(quizCode)
+            ?: throw NotFoundException("No quiz found with $quizCode")
+        val savedTeacher = teacherRepository.findByTeacherCode(savedQuiz.teacherCode)
+            ?: throw NotFoundException("Teacher not found")
+        val quizId = savedQuiz.id ?: throw BadRequestException("Quiz Id is missing.")
+        val savedQuestion = questionRepository.findAllByQuizId(quizId)
+        val totalMarks = savedQuestion.sumOf { it.marks }
+        println("total marks : $totalMarks")
+        return UsersQuizResponse(
+            subject = savedQuiz.subject,
+            topic = savedQuiz.topic,
+            quizCode = savedQuiz.quizCode,
+            teacherName = savedTeacher.name,
+            totalMarks = totalMarks
+        )
+    }
+
+
+    fun getQuizQuestionsForUser(quizCode: String): List<UserQuizQuestionResponse> {
+        val savedQuiz = quizRepository.findByQuizCode(quizCode)
+            ?: throw NotFoundException("No quiz found with $quizCode")
+        val savedQuestions = questionRepository.findAllByQuizId(savedQuiz.id!!)
+        if (savedQuestions.isEmpty()) throw NotFoundException("No questions found")
+
+        return savedQuestions.map {
+            UserQuizQuestionResponse(
+                questionId = it.id,
                 questionText = it.questionText,
                 options = it.options
             )
         }
     }
 
-    fun submitQuizUser(request: QuizSubmissionRequest): QuizSubmitResponse {
+    fun submitQuizUser(quizCode: String, answers: List<AnswerRequest>): QuizSubmitResponse {
         val session = SessionContext.getSession()
-        val userEntity = userRepository.findById(session.userId).orElseThrow {
-            throw NotFoundException("No account found")
+        val savedUser = userRepository.findById(session.userId).orElseThrow {
+            throw NotFoundException("No account found.")
         }
         // find quiz
-        val quizEntity = quizRepository.findByQuizAccessCode(request.quizAccessCode)
-            ?: throw NotFoundException("No quiz found with ${request.quizAccessCode}")
-        val questions = questionRepository.findAllByQuizId(quizEntity.id!!)
-        if (questions.isEmpty()) {
+        val savedQuiz = quizRepository.findByQuizCode(quizCode)
+            ?: throw NotFoundException("No quiz found with $quizCode")
+        val saveQuestions = questionRepository.findAllByQuizId(savedQuiz.id!!)
+        if (saveQuestions.isEmpty()) {
             throw NotFoundException("No questions found")
         }
 
-        val answerMap = request.answers.associateBy {
+        val answerMap = answers.associateBy {
             it.questionId
         }
         var totalScore = 0
@@ -57,7 +80,7 @@ class UserQuizService(
         var wrongAnswersCount = 0
         var skippedQuestionsCount = 0
         // evaluate answers
-        for (q in questions) {
+        for (q in saveQuestions) {
             totalMarks += q.marks // because Each Question can have different marks.
             val answer = answerMap[q.id.toString()]
             when {
@@ -78,10 +101,10 @@ class UserQuizService(
 
         val percentage: Double = if (totalMarks > 0) (totalScore.toDouble() / totalMarks) * 100 else 0.0
         val result = QuizResults(
-            teacherCode = quizEntity.teacherCode,
-            quizId = quizEntity.id.toHexString(),
-            quizAccessCode = quizEntity.quizAccessCode,
-            userRollNumber = userEntity.rollNumber,
+            teacherCode = savedQuiz.teacherCode,
+            quizId = savedQuiz.id.toString(),
+            quizCode = savedQuiz.quizCode,
+            userRollNumber = savedUser.rollNumber,
             score = totalScore,
             totalMarks = totalMarks,
             percentage = percentage,
@@ -90,7 +113,7 @@ class UserQuizService(
         quizResultsRepository.save(result)
 
         return QuizSubmitResponse(
-            quizAccessCode = result.quizAccessCode,
+            quizCode = result.quizCode,
             score = totalScore,
             totalMarks = totalMarks,
             percentage = percentage,

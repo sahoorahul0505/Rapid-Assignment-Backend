@@ -6,8 +6,8 @@ import org.springframework.data.mongodb.repository.MongoRepository
 import org.springframework.stereotype.Repository
 
 @Repository
-interface QuestionRepository : MongoRepository<Question, ObjectId> {
+interface QuestionRepository : MongoRepository<Question, String> {
 //    fun findBySubjectContainingIgnoreCase(subject : String) : List<Question?>
-    fun findAllByQuizId(quizId : ObjectId) : List<Question>
-    fun findByQuizId(quizId : ObjectId) : Question?
+    fun findAllByQuizId(quizId : String) : List<Question>
+    fun findByQuizId(quizId : String) : Question?
 }

@@ -1,6 +1,6 @@
 package com.example.Rapid_Assignment_backend.repositories
 
-import com.example.Rapid_Assignment_backend.domain.model.Otp
+import com.example.Rapid_Assignment_backend.domain.model.OtpRequestLog
 import com.example.Rapid_Assignment_backend.utils.EnumsRole
 import com.example.Rapid_Assignment_backend.utils.EnumsType
 import org.springframework.data.mongodb.repository.MongoRepository
@@ -8,7 +8,8 @@ import org.springframework.stereotype.Repository
 import java.time.Instant
 
 @Repository
-interface OtpRepository : MongoRepository<Otp, String>{
-    fun findByTypeAndRoleAndEmail(type: EnumsType, role : EnumsRole, email: String) : Otp?
-    fun deleteByTypeAndRoleAndEmail(type : EnumsType, role : EnumsRole, email: String)
+interface OtpRequestLogRepository : MongoRepository<OtpRequestLog, String> {
+    fun countByTypeAndRoleAndEmailAndRequestedAtAfter(
+        type: EnumsType, role: EnumsRole, email: String, requestedAt: Instant
+    ): Int
 }

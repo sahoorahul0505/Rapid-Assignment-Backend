@@ -1,17 +1,12 @@
 package com.example.Rapid_Assignment_backend.services
 
 import com.example.Rapid_Assignment_backend.configuration.SessionContext
-import com.example.Rapid_Assignment_backend.configuration.errorHandler.ForbiddenException
 import com.example.Rapid_Assignment_backend.configuration.errorHandler.NotFoundException
-import com.example.Rapid_Assignment_backend.configuration.errorHandler.UnAuthorizedException
+import com.example.Rapid_Assignment_backend.configuration.errorHandler.UnauthorizedException
 import com.example.Rapid_Assignment_backend.domain.model.Question
 import com.example.Rapid_Assignment_backend.domain.model.Quiz
-import com.example.Rapid_Assignment_backend.dto.quiz.AddQuestionRequest
-import com.example.Rapid_Assignment_backend.dto.quiz.CreateQuizRequest
-import com.example.Rapid_Assignment_backend.dto.quiz.GetQuestionsRequest
-import com.example.Rapid_Assignment_backend.dto.quiz.QuizResponse
-import com.example.Rapid_Assignment_backend.dto.quiz.TeacherQuestionsResponse
-import com.example.Rapid_Assignment_backend.dto.quiz.TeacherQuizzesResponse
+import com.example.Rapid_Assignment_backend.utils.toReadableTime
+import com.example.Rapid_Assignment_backend.dto.quiz.*
 import com.example.Rapid_Assignment_backend.repositories.QuestionRepository
 import com.example.Rapid_Assignment_backend.repositories.QuizRepository
 import com.example.Rapid_Assignment_backend.repositories.TeacherRepository
@@ -25,62 +20,64 @@ class TeacherQuizService(
 ) {
 
 
-    fun createQuiz(request: CreateQuizRequest): QuizResponse {
+    fun createQuiz(request: CreateQuizRequest): String {
         val session = SessionContext.getSession()
-        val teacher = teacherRepository.findById(session.userId).orElseThrow {
-            NotFoundException("Account not found")
+        val savedTeacher = teacherRepository.findById(session.userId).orElseThrow {
+            UnauthorizedException("Please login.")
         }
         // generate access code
-        val quizAccessCode = generateAccessCode(teacher.name, request.topic)
+        val quizCode = generateAccessCode(request.subject, request.topic)
         val quizEntity = Quiz(
-            teacherCode = teacher.teacherCode,
+            teacherCode = savedTeacher.teacherCode,
             subject = request.subject,
             topic = request.topic,
-            quizAccessCode = quizAccessCode
+            quizCode = quizCode
         )
 
         quizRepository.save(quizEntity)
 
-        return QuizResponse(quizAccessCode)
+        return quizCode
     }
 
-    fun addQuestion(request: AddQuestionRequest) {
+    fun addQuestionsToQuiz(quizCode: String, request: List<AddQuestionRequest>) {
         val session = SessionContext.getSession()
-        val teacherEntity = teacherRepository.findById(session.userId).orElseThrow {
-            throw NotFoundException("Account not found")
+        val savedTeacher = teacherRepository.findById(session.userId).orElseThrow {
+            throw UnauthorizedException("Please login.")
         }
-        val quizEntity = quizRepository.findByQuizAccessCodeAndTeacherCode(
-            request.quizAccessCode,
-            teacherEntity.teacherCode
-        ) ?: throw ForbiddenException()
+        val savedQuiz = quizRepository.findByQuizCodeAndTeacherCode(
+            quizCode,
+            savedTeacher.teacherCode
+        ) ?: throw UnauthorizedException("Access denied. You are not allowed.")
 //        val shuffledOptions = request.options.shuffled()
 //        val newCorrectIndex = shuffledOptions.indexOf(request.options[request.correctOptionIndex])
-        val questionEntity = Question(
-            quizId = quizEntity.id!!,
-            questionText = request.questionText,
-            options = request.options,
-            correctOptionIndex = request.correctOptionIndex,
-            marks = request.marks
-        )
-        questionRepository.save(questionEntity)
+        request.forEach { q ->
+            val questionEntity = Question(
+                quizId = savedQuiz.id!!,
+                questionText = q.questionText,
+                options = q.options,
+                correctOptionIndex = q.correctOptionIndex,
+                marks = q.marks
+            )
+            questionRepository.save(questionEntity)
+        }
     }
 
-    fun getQuestionsForTeacher(request: GetQuestionsRequest): List<TeacherQuestionsResponse> {
+    fun getQuizQuestionsForTeacher(quizCode : String): List<TeacherQuizQuestionResponse> {
         val session = SessionContext.getSession()
-        val teacherEntity = teacherRepository.findById(session.userId).orElseThrow {
+        val savedTeacher = teacherRepository.findById(session.userId).orElseThrow {
             NotFoundException("No account found")
         }
-        val quizEntity = quizRepository.findByQuizAccessCodeAndTeacherCode(
-            request.quizAccessCode,
-            teacherEntity.teacherCode
-        ) ?: throw UnAuthorizedException()
+        val savedQuiz = quizRepository.findByQuizCodeAndTeacherCode(
+            quizCode,
+            savedTeacher.teacherCode
+        ) ?: throw UnauthorizedException("You are not allowed access to this resource.")
         // fetch all questions
-        val questionEntity = questionRepository.findAllByQuizId(quizEntity.id!!)
+        val savedQuestions = questionRepository.findAllByQuizId(savedQuiz.id!!)
 
         // map to response
-        return questionEntity.map {
-            TeacherQuestionsResponse(
-                id = it.id?.toHexString(),
+        return savedQuestions.map {
+            TeacherQuizQuestionResponse(
+                id = it.id,
                 questionText = it.questionText,
                 options = it.options,
                 correctOptionIndex = it.correctOptionIndex,
@@ -89,36 +86,37 @@ class TeacherQuizService(
         }
     }
 
-    fun getAllQuizzesForTeacher(): List<TeacherQuizzesResponse> {
+    fun getAllQuizzesForTeacher(): List<TeacherQuizResponse> {
         val session = SessionContext.getSession()
-        val teacherEntity = teacherRepository.findById(session.userId).orElseThrow {
-            IllegalArgumentException("No account found")
+        val savedTeacher = teacherRepository.findById(session.userId).orElseThrow {
+            NotFoundException("No account found")
         }
-        val quizEntity = quizRepository.findAllByTeacherCode(teacherEntity.teacherCode)
+        val savedQuiz = quizRepository.findAllByTeacherCode(savedTeacher.teacherCode)
 
-        return quizEntity.map {
-            TeacherQuizzesResponse(
-                subject = it.teacherCode,
+        return savedQuiz.map {
+            TeacherQuizResponse(
+                subject = it.subject,
                 topic = it.topic,
-                teacherCode = it.teacherCode,
-                quizAccessCode = it.quizAccessCode,
-                createdAt = it.createdAt
+                quizCode = it.quizCode,
+                createdAt = it.createdAt.toReadableTime()
             )
         }
     }
 
     private fun generateAccessCode(key1: String, key2: String): String {
+
         val key1Parts = key1.trim().split(" ")
         val key1Initials = when {
             key1Parts.size >= 2 -> key1Parts.take(key1Parts.size).joinToString("") { it.first().uppercase() }
-            else -> key1.take(2).uppercase()
+            else -> key1.take(3).uppercase()
         }
 
         val key2Parts = key2.trim().split(" ")
         val key2Initials = when {
             key2Parts.size >= 2 -> key2Parts.take(key2Parts.size).joinToString("") { it.first().uppercase() }
-            else -> key2.take(2).uppercase()
+            else -> key2.take(3).uppercase()
         }
+
         val digits = (1000..9999).random().toString()
 
         return key1Initials + key2Initials + digits

@@ -1,33 +1,37 @@
 package com.example.Rapid_Assignment_backend.controller
 
-import com.example.Rapid_Assignment_backend.dto.common.ApiResponse
-import com.example.Rapid_Assignment_backend.dto.common.ForgotPasswordRequest
-import com.example.Rapid_Assignment_backend.dto.common.CommonLoginRequest
-import com.example.Rapid_Assignment_backend.dto.user.UserRegisterOtpRequest
-import com.example.Rapid_Assignment_backend.dto.common.ResetPasswordRequest
+import com.example.Rapid_Assignment_backend.dto.common.CustomApiResponse
+import com.example.Rapid_Assignment_backend.dto.common.LoginOtpRequest
+import com.example.Rapid_Assignment_backend.dto.common.LoginRequest
+import com.example.Rapid_Assignment_backend.dto.common.RegisterOtpRequest
+import com.example.Rapid_Assignment_backend.dto.common.PasswordResetRequest
+import com.example.Rapid_Assignment_backend.dto.common.PaswrdResetOtpRequest
 import com.example.Rapid_Assignment_backend.dto.common.SessionResponse
 import com.example.Rapid_Assignment_backend.dto.user.UserRegisterRequest
 import com.example.Rapid_Assignment_backend.services.UserAuthService
+import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("/auth/user")
+@RequestMapping("/users/auth")
 class UserAuthController(
     private val userAuthService: UserAuthService
 ) {
     val okStatusCode = HttpStatus.OK.value()
 
-    @PostMapping("/send-registration-otp")
-    fun sendOtpForRegistration(@RequestBody body: UserRegisterOtpRequest): ResponseEntity<ApiResponse<Unit>?> {
+    @PostMapping("/register/otp")
+    fun sendOtpForRegistration(
+        @Valid
+        @RequestBody body: RegisterOtpRequest
+    ): ResponseEntity<CustomApiResponse<Unit>> {
         userAuthService.sendOtpForRegistrationUser(body)
         return ResponseEntity.ok(
-            ApiResponse(
+            CustomApiResponse(
                 statusCode = okStatusCode,
                 message = "OTP sent to your Email"
             )
@@ -36,24 +40,28 @@ class UserAuthController(
 
     @PostMapping("/register")
     fun register(
+        @Valid
         @RequestBody body: UserRegisterRequest,
-        @RequestParam otp: String
-    ): ResponseEntity<ApiResponse<SessionResponse>> {
-        val result = userAuthService.verifyOtpAndRegisterUser(body, otp)
-        return ResponseEntity.ok(
-            ApiResponse(
-                statusCode = okStatusCode,
-                message = "Registration successful",
-                data = result
+    ): ResponseEntity<CustomApiResponse<SessionResponse>> {
+        val result = userAuthService.verifyOtpAndRegisterUser(body) //(UserAuthController.kt:42)
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(
+                CustomApiResponse(
+                    statusCode = HttpStatus.CREATED.value(),
+                    message = "Registration successful",
+                    data = result
+                )
             )
-        )
     }
 
-    @PostMapping("/send-login-otp")
-    fun sendOtpForLogin(@RequestBody body: CommonLoginRequest): ResponseEntity<ApiResponse<Unit>?> {
+    @PostMapping("/login/otp")
+    fun sendOtpForLogin(
+        @Valid
+        @RequestBody body: LoginOtpRequest
+    ): ResponseEntity<CustomApiResponse<Unit>> {
         userAuthService.sendOtpForLogin(body)
         return ResponseEntity.ok(
-            ApiResponse(
+            CustomApiResponse(
                 statusCode = okStatusCode,
                 message = "OTP sent to your Email"
             )
@@ -61,10 +69,13 @@ class UserAuthController(
     }
 
     @PostMapping("/login")
-    fun login(@RequestBody body: CommonLoginRequest, @RequestParam otp: String): ResponseEntity<ApiResponse<SessionResponse> > {
-        val result = userAuthService.verifyOtpAndLogin(body, otp)
+    fun login(
+        @Valid
+        @RequestBody body: LoginRequest
+    ): ResponseEntity<CustomApiResponse<SessionResponse>> {
+        val result = userAuthService.verifyOtpAndLogin(body)
         return ResponseEntity.ok(
-            ApiResponse(
+            CustomApiResponse(
                 statusCode = okStatusCode,
                 message = "Login successful",
                 data = result
@@ -73,28 +84,32 @@ class UserAuthController(
     }
 
 
-    @PostMapping("/forgot-password-otp")
-    fun sendOtpForForgotPassword(@RequestBody body: ForgotPasswordRequest): ResponseEntity<ApiResponse<Unit>?> {
-        userAuthService.sendOtpForForgotPassword(body)
+    @PostMapping("/password/reset/otp")
+    fun sendOtpForResetPassword(
+        @Valid
+        @RequestBody body: PaswrdResetOtpRequest
+    ): ResponseEntity<CustomApiResponse<Unit>> {
+        userAuthService.sendOtpForResetPassword(body)
         return ResponseEntity.ok(
-            ApiResponse(
+            CustomApiResponse(
                 statusCode = okStatusCode,
                 message = "OTP sent to your Email"
             )
         )
     }
 
-    @PostMapping("/reset-password")
+    @PostMapping("/password/reset")
     fun resetPassword(
-        @RequestBody body: ResetPasswordRequest,
-        @RequestParam otp: String
-    ): ResponseEntity<ApiResponse<Unit>?> {
-        userAuthService.validateOtpAndResetPassword(request = body, otp)
-        return ResponseEntity.ok(
-            ApiResponse(
-                statusCode = okStatusCode,
-                message = "Password update successfully, We have sent password to your Email."
+        @Valid
+        @RequestBody body: PasswordResetRequest
+    ): ResponseEntity<CustomApiResponse<Unit>> {
+        userAuthService.validateOtpAndResetPassword(body)
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+            .body(
+                CustomApiResponse(
+                    statusCode = HttpStatus.ACCEPTED.value(),
+                    message = "Password changed successfully."
+                )
             )
-        )
     }
 }

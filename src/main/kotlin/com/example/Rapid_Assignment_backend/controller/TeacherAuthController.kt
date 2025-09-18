@@ -1,21 +1,18 @@
 package com.example.Rapid_Assignment_backend.controller
 
-import com.example.Rapid_Assignment_backend.dto.common.ApiResponse
-import com.example.Rapid_Assignment_backend.dto.common.CommonLoginRequest
-import com.example.Rapid_Assignment_backend.dto.common.SessionResponse
-import com.example.Rapid_Assignment_backend.dto.teacher.RegisterOtpRequest
+import com.example.Rapid_Assignment_backend.dto.common.*
 import com.example.Rapid_Assignment_backend.dto.teacher.TeacherRegisterRequest
 import com.example.Rapid_Assignment_backend.services.TeacherAuthService
+import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("/auth/teacher")
+@RequestMapping("/teachers/auth")
 class TeacherAuthController(
     private val teacherAuthService: TeacherAuthService
 ) {
@@ -23,28 +20,34 @@ class TeacherAuthController(
 
     // ------------------------------ REGISTRATION -------------------------------------------//
 
-    @PostMapping("/send-registration-otp")
-    fun sendOtpForRegister(@RequestBody body: RegisterOtpRequest): ResponseEntity<ApiResponse<Unit>?> {
+    @PostMapping("/register/otp")
+    fun sendOtpForRegisterTeacher(
+        @Valid
+        @RequestBody body: RegisterOtpRequest
+    ): ResponseEntity<CustomApiResponse<Unit>?> {
         teacherAuthService.sendOtpForRegistrationTeacher(body)
-        return ResponseEntity.ok(ApiResponse(statusCode = okStatus, message = "OTP sent to your Email"))
+        return ResponseEntity.ok(CustomApiResponse(statusCode = okStatus, message = "OTP sent to your Email"))
     }
 
     @PostMapping("/register")
     fun registerTeacher(
-        @RequestBody body: TeacherRegisterRequest,
-        @RequestParam otp: String
-    ): ResponseEntity<ApiResponse<SessionResponse>> {
-        val result = teacherAuthService.verifyOtpAndRegisterTeacher(request = body, otp = otp)
-        return ResponseEntity.ok(ApiResponse(statusCode = okStatus, message = "Registration successful", data = result))
+        @Valid
+        @RequestBody body: TeacherRegisterRequest
+    ): ResponseEntity<CustomApiResponse<SessionResponse>> {
+        val result = teacherAuthService.verifyOtpAndRegisterTeacher(body) // -> (TeacherAuthController.kt:37)
+        return ResponseEntity.ok(CustomApiResponse(statusCode = okStatus, message = "Registration successful", data = result))
     }
 
     // -------------------------------- LOGIN -----------------------------------//
 
-    @PostMapping("/send-login-otp")
-    fun sendOtpForLoginTeacher(@RequestBody body: CommonLoginRequest): ResponseEntity<ApiResponse<Unit>?> {
-        teacherAuthService.sendOtpForLogin(body)
+    @PostMapping("/login/otp")
+    fun sendOtpForLoginTeacher(
+        @Valid
+        @RequestBody body: LoginOtpRequest
+    ): ResponseEntity<CustomApiResponse<Unit>?> {
+        teacherAuthService.sendOtpForLoginTeacher(body)
         return ResponseEntity.ok(
-            ApiResponse(
+            CustomApiResponse(
                 statusCode = okStatus,
                 message = "Otp sent to your Email"
             )
@@ -53,10 +56,10 @@ class TeacherAuthController(
 
     @PostMapping("/login")
     fun loginTeacher(
-        @RequestBody body: CommonLoginRequest,
-        @RequestParam otp: String
-    ): ResponseEntity<ApiResponse<SessionResponse>> {
-        val result = teacherAuthService.verifyOtpAndLogin(body, otp)
-        return ResponseEntity.ok(ApiResponse(statusCode = okStatus, message = "Login successful", data = result))
+        @Valid
+        @RequestBody body: LoginRequest
+    ): ResponseEntity<CustomApiResponse<SessionResponse>> {
+        val result = teacherAuthService.verifyOtpAndLoginTeacher(body)
+        return ResponseEntity.ok(CustomApiResponse(statusCode = okStatus, message = "Login successful", data = result))
     }
 }

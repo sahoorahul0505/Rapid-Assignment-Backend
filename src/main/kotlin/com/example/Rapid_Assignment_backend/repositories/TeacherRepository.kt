@@ -6,6 +6,7 @@ import org.springframework.data.mongodb.repository.MongoRepository
 import org.springframework.stereotype.Repository
 
 @Repository
-interface TeacherRepository : MongoRepository<Teacher, ObjectId>{
+interface TeacherRepository : MongoRepository<Teacher, String>{
     fun findByEmail(email : String) : Teacher?
+    fun findByTeacherCode(teacherCode : String) : Teacher?
 }

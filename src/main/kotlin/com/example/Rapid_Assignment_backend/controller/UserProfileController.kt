@@ -1,12 +1,13 @@
 package com.example.Rapid_Assignment_backend.controller
 
-import com.example.Rapid_Assignment_backend.dto.common.ApiResponse
+import com.example.Rapid_Assignment_backend.dto.common.CustomApiResponse
 import com.example.Rapid_Assignment_backend.dto.user.UserProfileResponse
 import com.example.Rapid_Assignment_backend.dto.user.UserProfileUpdateRequest
 import com.example.Rapid_Assignment_backend.services.UserProfileService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -15,17 +16,17 @@ import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.multipart.MultipartFile
 
 @RestController
-@RequestMapping("/user/profile")
+@RequestMapping("/users/profile")
 class UserProfileController(
     private val profileService: UserProfileService
 ) {
     val okStausCode = HttpStatus.OK.value()
 
-    @PostMapping
-    fun fetchUserProfile(): ResponseEntity<ApiResponse<UserProfileResponse>> {
+    @GetMapping
+    fun fetchUserProfile(): ResponseEntity<CustomApiResponse<UserProfileResponse>> {
         val result = profileService.fetchUserProfile()
         return ResponseEntity.ok(
-            ApiResponse(
+            CustomApiResponse(
                 statusCode = okStausCode,
                 message = "Profile fetched",
                 data = result
@@ -34,29 +35,30 @@ class UserProfileController(
     }
 
     @PutMapping("/update")
-    fun updateProfile(
-        @RequestBody body: UserProfileUpdateRequest,
-        @RequestParam password : String
-    ): ResponseEntity<ApiResponse<Unit>?> {
-        profileService.updateProfile(request = body, password = password)
-        return ResponseEntity.ok(
-            ApiResponse(
-                statusCode = okStausCode,
-                message = "Profile update successfully"
+    fun updateUserProfile(
+        @RequestBody body: UserProfileUpdateRequest
+    ): ResponseEntity<CustomApiResponse<Unit>?> {
+        profileService.updateUserProfile(request = body)
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+            .body(
+                CustomApiResponse(
+                    statusCode = HttpStatus.ACCEPTED.value(),
+                    message = "Profile update successfully"
+                )
             )
-        )
     }
 
-    @PostMapping("/upload-profile-pic")
-    fun uploadProfilePic(
+    @PatchMapping("/picture")
+    fun uploadUserProfilePic(
         @RequestParam("file") file: MultipartFile
-    ): ResponseEntity<ApiResponse<String>> {
-        profileService.uploadProfilePic(file = file)
-        return ResponseEntity.ok(
-            ApiResponse(
-                statusCode = okStausCode,
-                message = "Profile pic update successfully"
+    ): ResponseEntity<CustomApiResponse<Unit>> {
+        profileService.uploadUserProfilePic(file = file)
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+            .body(
+                CustomApiResponse(
+                    statusCode = okStausCode,
+                    message = "Profile pic update successfully"
+                )
             )
-        )
     }
 }

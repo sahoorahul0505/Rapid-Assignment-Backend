@@ -1,79 +1,81 @@
 package com.example.Rapid_Assignment_backend.services
 
 import com.cloudinary.Cloudinary
+import com.example.Rapid_Assignment_backend.configuration.HashEncoder
 import com.example.Rapid_Assignment_backend.configuration.SessionContext
-import com.example.Rapid_Assignment_backend.configuration.errorHandler.InvalidCredentialException
+import com.example.Rapid_Assignment_backend.configuration.errorHandler.BadRequestException
 import com.example.Rapid_Assignment_backend.configuration.errorHandler.NotFoundException
 import com.example.Rapid_Assignment_backend.dto.user.UserProfileResponse
 import com.example.Rapid_Assignment_backend.dto.user.UserProfileUpdateRequest
 import com.example.Rapid_Assignment_backend.repositories.UserRepository
-import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
-import java.time.Instant
 
 @Service
 class UserProfileService(
     private val userRepository: UserRepository,
-    private val bCryptEncoder: PasswordEncoder,
+    private val hashEncoder: HashEncoder,
     private val cloudinary: Cloudinary
 ) {
 
     fun fetchUserProfile(): UserProfileResponse {
         val session = SessionContext.getSession()
 
-        val user = userRepository.findById(session.userId).orElseThrow {
-            NotFoundException("Account not found, Please login again.")
+        val savedUser = userRepository.findById(session.userId).orElseThrow {
+            NotFoundException("Account not found, Please login.")
         }
 
         return UserProfileResponse(
-            email = user.email,
-            name = user.name,
-            rollNumber = user.rollNumber,
-            branch = user.branch,
-            profilePic = user.profilePic
+            email = savedUser.email,
+            name = savedUser.name,
+            rollNumber = savedUser.rollNumber,
+            branch = savedUser.branch,
+            profilePic = savedUser.profilePic
         )
     }
 
-    fun updateProfile(request: UserProfileUpdateRequest, password : String) {
+    fun updateUserProfile(request: UserProfileUpdateRequest) {
         val session = SessionContext.getSession()
 
-        val user = userRepository.findById(session.userId).orElseThrow {
-            NotFoundException("Account not found, Please login again.")
+        val savedUser = userRepository.findById(session.userId).orElseThrow {
+            NotFoundException("No account found, Please login.")
         }
 
-        if (bCryptEncoder.matches(password, user.passwordHash).not()) {
-            throw InvalidCredentialException()
+        if (hashEncoder.matches(request.password, savedUser.passwordHash).not()) {
+            throw BadRequestException("Invalid Credential.")
         }
 
-        val updatedUser = user.copy(
-            name = request.name ?: user.name,
-            rollNumber = request.rollNumber ?: user.rollNumber,
-            branch = request.branch ?: user.branch,
-            profilePic = request.profilePic ?: user.profilePic
+        val userToUpdate = savedUser.copy(
+            name = request.name ?: savedUser.name,
+            rollNumber = request.rollNumber ?: savedUser.rollNumber,
+            branch = request.branch ?: savedUser.branch,
+            profilePic = request.profilePic ?: savedUser.profilePic,
         )
 
-        userRepository.save(updatedUser)
+        userRepository.save(userToUpdate)
     }
 
 
-    fun uploadProfilePic(file: MultipartFile){
+    fun uploadUserProfilePic(file: MultipartFile) {
         val session = SessionContext.getSession()
-        if (session.expiresAt.isBefore(Instant.now())){
-            throw NotFoundException("Session expired, Please Login again.")
-        }
-        val user = userRepository.findById(session.userId).orElseThrow {
-            NotFoundException("Account not found, Please login again")
+        val savedUser = userRepository.findById(session.userId).orElseThrow {
+            NotFoundException("No account found, Please login.")
         }
 
-        val uploadResult = cloudinary.uploader().upload(file.bytes, mapOf("folder" to "RapidAssignment/users/profile_pics"))
+        val publicId = "/${savedUser.role}_${session.userId}_profile"
+        val uploadResult =
+            cloudinary.uploader().upload(
+                file.bytes,
+                mapOf(
+                    "public_id" to publicId,
+                    "overwrite" to true,
+                    "folder" to "RapidAssignment/users/profile_pics"
+                )
+            )
         val imageUrl = uploadResult["secure_url"].toString()
 
-        val updatedUser = user.copy(
-            profilePic = imageUrl
-        )
+        val profilePicToUpload = savedUser.copy(profilePic = imageUrl, profilePicPublicId = publicId)
 
-        userRepository.save(updatedUser)
-
+        userRepository.save(profilePicToUpload)
     }
 }

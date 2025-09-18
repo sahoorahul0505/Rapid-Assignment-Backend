@@ -8,8 +8,8 @@ import java.time.Instant
 
 @Document("questions")
 data class Question(
-    @Id val id: ObjectId? = null,
-    val quizId: ObjectId,
+    @Id val id: String? = null,
+    val quizId: String,
     val questionText: String,
     val options: List<String>,
     val correctOptionIndex: Int,

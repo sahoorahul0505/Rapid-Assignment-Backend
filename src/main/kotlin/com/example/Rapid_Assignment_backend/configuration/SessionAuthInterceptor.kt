@@ -1,7 +1,6 @@
 package com.example.Rapid_Assignment_backend.configuration
 
-import com.example.Rapid_Assignment_backend.configuration.errorHandler.InvalidRequestException
-import com.example.Rapid_Assignment_backend.configuration.errorHandler.NotFoundException
+import com.example.Rapid_Assignment_backend.configuration.errorHandler.UnauthorizedException
 import com.example.Rapid_Assignment_backend.repositories.SessionRepository
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -21,18 +20,18 @@ class SessionAuthInterceptor(
     ): Boolean {
 
         // skip for endpoint start with /auth
-        val path = request.servletPath
-        if (path.startsWith("/auth/")){
-            // skip auth endpoint
-            return true
-        }
+//        val path = request.servletPath
+//        if (path.startsWith("/auth/")){
+//            // skip auth endpoint
+//            return true
+//        }
 
-        val token = request.getHeader("X-Session-token")
-            ?: throw NotFoundException("Session token missing.")
+        val token = request.getHeader("X-Session-Token")
+            ?: throw UnauthorizedException("Session token missing. Please login again.")
         val session = sessionRepository.findByToken(token)
-            ?: throw InvalidRequestException("Invalid token, please login again to get access to this resource")
+            ?: throw UnauthorizedException("Invalid session token, please login again.")
         if (session.expiresAt.isBefore(Instant.now())){
-            throw InvalidRequestException("Session token expired, please login again")
+            throw UnauthorizedException("Session Expired, please login again")
         }
 
         // if valid token -> store in cotext

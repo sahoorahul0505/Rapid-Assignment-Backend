@@ -12,6 +12,11 @@ class WebConfig(
     override fun addInterceptors(registry: InterceptorRegistry) {
         registry.addInterceptor(sessionAuthInterceptor)
             .addPathPatterns("/**") // protect all
-            .excludePathPatterns("/auth/**") // skip for auth
+            .excludePathPatterns(
+                "/teachers/auth/**",
+                "/users/auth/**",
+                "/v3/api-docs/**",
+                "/swagger-ui/**"
+            ) // skip
     }
 }

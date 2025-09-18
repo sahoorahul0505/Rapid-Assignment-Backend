@@ -8,7 +8,7 @@ import org.springframework.web.filter.OncePerRequestFilter
 import org.springframework.web.util.ContentCachingRequestWrapper
 import org.springframework.web.util.ContentCachingResponseWrapper
 
-@Component
+//@Component
 class LoggingFilter : OncePerRequestFilter() {
 
     override fun doFilterInternal(

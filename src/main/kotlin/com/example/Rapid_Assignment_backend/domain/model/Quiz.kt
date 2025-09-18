@@ -7,10 +7,10 @@ import java.time.Instant
 
 @Document("quizzes")
 data class Quiz(
-    @Id val id: ObjectId? = null,
+    @Id val id: String? = null,
     val teacherCode: String,
     val subject: String,
     val topic: String,
-    val quizAccessCode: String,                 // 8-char unique
+    val quizCode: String,                 // 8-char unique
     val createdAt: Instant = Instant.now()
 )

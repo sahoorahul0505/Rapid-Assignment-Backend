@@ -8,5 +8,5 @@ import org.springframework.stereotype.Repository
 @Repository
 interface SessionRepository : MongoRepository<Session, String>{
     fun findByToken(token : String) : Session?
-    fun deleteByUserId(userId: ObjectId)
+    fun deleteByUserId(userId: String)
 }

@@ -4,18 +4,16 @@ import com.example.Rapid_Assignment_backend.utils.EnumsRole
 import com.example.Rapid_Assignment_backend.utils.EnumsType
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.index.Indexed
-import org.springframework.data.mongodb.core.mapping.Document
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
-@Document("otp's")
-data class Otp(
-    @Id val id: String? = null,
+data class OtpRequestLog(
+    @Id val id : String? = null,
     val type : EnumsType,
     val role : EnumsRole,
-    val email: String,
-    val otp: String,
-    val createdAt: Instant = Instant.now(),
-    @Indexed(name = "otp_expire_idx", expireAfter = "1d")
-    val expiresAt: Instant = Instant.now().plus(10, ChronoUnit.MINUTES)
+    val email : String,
+    val requestedAt : Instant = Instant.now(),
+
+    @Indexed(name = "otp_request_expire_idx", expireAfter = "7d")
+    val expiresAt : Instant = Instant.now().plus(7, ChronoUnit.DAYS)
 )

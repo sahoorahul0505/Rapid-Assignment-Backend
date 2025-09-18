@@ -37,6 +37,8 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-mail")
 	implementation("com.cloudinary:cloudinary-http44:1.36.0")
 
+	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.13")
+
 }
 
 kotlin {

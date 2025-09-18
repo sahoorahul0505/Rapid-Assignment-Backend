@@ -7,10 +7,10 @@ import java.time.Instant
 
 @Document("quiz_results")
 data class QuizResults(
-    @Id val id : ObjectId? = null,
+    @Id val id : String? = null,
     val teacherCode : String,
     val quizId : String,
-    val quizAccessCode : String,
+    val quizCode : String,
     val userRollNumber : String,
     val score : Int,
     val totalMarks : Int,

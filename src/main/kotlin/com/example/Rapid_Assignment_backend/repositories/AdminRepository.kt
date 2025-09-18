@@ -6,6 +6,6 @@ import org.springframework.data.mongodb.repository.MongoRepository
 import org.springframework.stereotype.Repository
 
 @Repository
-interface AdminRepository : MongoRepository<Admin, ObjectId>{
+interface AdminRepository : MongoRepository<Admin, String>{
 
 }

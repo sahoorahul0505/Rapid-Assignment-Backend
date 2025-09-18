@@ -1,231 +1,160 @@
 package com.example.Rapid_Assignment_backend.services
 
+import com.example.Rapid_Assignment_backend.configuration.HashEncoder
+import com.example.Rapid_Assignment_backend.configuration.errorHandler.BadRequestException
 import com.example.Rapid_Assignment_backend.configuration.errorHandler.ConflictException
-import com.example.Rapid_Assignment_backend.configuration.errorHandler.InvalidCredentialException
-import com.example.Rapid_Assignment_backend.configuration.errorHandler.InvalidRequestException
 import com.example.Rapid_Assignment_backend.configuration.errorHandler.NotFoundException
 import com.example.Rapid_Assignment_backend.domain.model.Session
-import com.example.Rapid_Assignment_backend.domain.model.Otp
 import com.example.Rapid_Assignment_backend.domain.model.User
-import com.example.Rapid_Assignment_backend.dto.common.CommonLoginRequest
-import com.example.Rapid_Assignment_backend.dto.common.ForgotPasswordRequest
-import com.example.Rapid_Assignment_backend.dto.user.UserRegisterOtpRequest
-import com.example.Rapid_Assignment_backend.dto.common.ResetPasswordRequest
-import com.example.Rapid_Assignment_backend.dto.common.SessionResponse
+import com.example.Rapid_Assignment_backend.utils.EnumsRole
+import com.example.Rapid_Assignment_backend.utils.EnumsType
+import com.example.Rapid_Assignment_backend.dto.common.*
 import com.example.Rapid_Assignment_backend.dto.user.UserRegisterRequest
 import com.example.Rapid_Assignment_backend.repositories.SessionRepository
-import com.example.Rapid_Assignment_backend.repositories.OtpRepository
 import com.example.Rapid_Assignment_backend.repositories.UserRepository
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.stereotype.Service
-import java.time.Instant
-import java.time.temporal.ChronoUnit
-import java.util.UUID
+import java.util.*
 
 @Service
 class UserAuthService(
     private val userRepository: UserRepository,
     private val sessionRepository: SessionRepository,
-    private val bCryptEncoder: BCryptPasswordEncoder,
-    private val otpRepository: OtpRepository,
-    private val emailService: SendEmailService
+    private val hashEncoder: HashEncoder,
+    private val emailService: EmailService,
+    private val otpService: OtpService
 
 ) {
 
-    fun sendOtpForRegistrationUser(request: UserRegisterOtpRequest) {
+    fun sendOtpForRegistrationUser(request: RegisterOtpRequest) {
         if (userRepository.findByEmail(request.email) != null) {
-            throw ConflictException(request.email, "email")
+            throw ConflictException("Email already in use.")
         }
-        // delete previous otp's on this account
-        otpRepository.deleteByEmail(request.email)
-        // generate otp
-        val newOtp = (100000..999999).random().toString()
-        val hashedOtp = bCryptEncoder.encode(newOtp)
-        val otpEntity = Otp(
-            type = "USER",
-            email = request.email,
-            otp = hashedOtp
-        )
-        otpRepository.save(otpEntity)
 
-        val purpose = "Registration"
-        emailService.sendOtpMailHtmlBody(
-            to = request.email,
-            userName = request.name,
-            otp = newOtp,
-            purpose = purpose
+        // send otp to mail
+        otpService.generateAndSendOtp(
+            email = request.email,
+            name = request.name,
+            type = EnumsType.REGISTER,
+            role = EnumsRole.USER,
+            hours = 1,
+            maxRequest = 3
         )
     }
 
-    fun verifyOtpAndRegisterUser(request: UserRegisterRequest, otp: String): SessionResponse {
-        val otpEntity = otpRepository.findByEmail(request.email)
-            ?: throw NotFoundException("OTP may be used, please send again.")
-        if (otpEntity.expiresAt.isBefore(Instant.now())) {
-            throw InvalidRequestException("OTP expired, please send again.")
-        }
-        if (bCryptEncoder.matches(otp, otpEntity.otp).not()) {
-            throw InvalidRequestException("Invalid OTP")
-        }
+    fun verifyOtpAndRegisterUser(request: UserRegisterRequest): SessionResponse {
+        // verify otp
+        otpService.verifyOtp(
+            email = request.email,
+            rawOtp = request.otp,
+            type = EnumsType.REGISTER,
+            role = EnumsRole.USER
+        )
 
-        // OTP is valid -> register user
-        val hashedPassword = bCryptEncoder.encode(request.password)
-        val userEntity = User(
+        val hashedPassword = hashEncoder.encoder(request.password)
+        val userToSave = User(
             email = request.email,
             passwordHash = hashedPassword,
             name = request.name,
             rollNumber = request.rollNumber,
-            branch = request.branch
+            branch = request.branch,
         )
-        userRepository.save(userEntity)
-        otpRepository.deleteByEmail(request.email)
+        val savedUser = userRepository.save(userToSave)
         val token = UUID.randomUUID().toString()
-        val session = Session(
-            role = "USER",
+        val sessionToSave = Session(
+            role = EnumsRole.USER,
             token = token,
-            userId = userEntity.id!!
+            userId = savedUser.id!!
         )
-        sessionRepository.save(session)
+        sessionRepository.save(sessionToSave)
         return SessionResponse(
             token = token
         )
     }
 
-    fun sendOtpForLogin(request: CommonLoginRequest) {
-        val user = userRepository.findByEmail(request.email)
-            ?: throw NotFoundException("No account fount on this ${request.email}.")
-        if (bCryptEncoder.matches(request.password, user.passwordHash).not()) {
-            throw InvalidCredentialException()
+    fun sendOtpForLogin(request: LoginOtpRequest) {
+        val savedUser = userRepository.findByEmail(request.email)
+            ?: throw NotFoundException("No account found for this email.")
+        if (hashEncoder.matches(request.password, savedUser.passwordHash).not()) {
+            throw BadRequestException("Invalid credentials.")
         }
-        otpRepository.deleteByEmail(request.email)
-        val newOtp = (100000..999999).random().toString()
-        val hashedOtp = bCryptEncoder.encode(newOtp)
-        val otpEntity = Otp(
-            type = "USER",
+        otpService.generateAndSendOtp(
             email = request.email,
-            otp = hashedOtp
-        )
-        otpRepository.save(otpEntity)
-        val purpose = "Login"
-        emailService.sendOtpMailHtmlBody(
-            to = request.email,
-            userName = user.name,
-            otp = newOtp,
-            purpose = purpose
+            name = savedUser.name,
+            type = EnumsType.LOGIN,
+            role = EnumsRole.USER,
+            hours = 1,
+            maxRequest = 3
         )
     }
 
 
-    fun verifyOtpAndLogin(request: CommonLoginRequest, otp: String): SessionResponse {
-        val user =
+    fun verifyOtpAndLogin(request: LoginRequest): SessionResponse {
+        val savedUser =
             userRepository.findByEmail(request.email)
-                ?: throw NotFoundException("No account found on this ${request.email}, Please check email again.")
+                ?: throw NotFoundException("No account found for this email.")
 
-        if (bCryptEncoder.matches(request.password, user.passwordHash).not()) {
-            throw InvalidCredentialException()
+        if (hashEncoder.matches(request.password, savedUser.passwordHash).not()) {
+            throw BadRequestException("Invalid credentials.")
         }
 
-        val otpEntity = otpRepository.findByEmail(request.email)
-            ?: throw InvalidRequestException("OTP may be used, Please send again.")
-        if (otpEntity.expiresAt.isBefore(Instant.now())) {
-            throw InvalidRequestException("OTP expired, please send again")
-        }
-        if (bCryptEncoder.matches(otp, otpEntity.otp).not()) {
-            throw InvalidRequestException("Invalid OTP")
-        }
-        sessionRepository.deleteByUserId(userId = user.id!!)
+        otpService.verifyOtp(
+            email = request.email,
+            rawOtp = request.otp,
+            type = EnumsType.LOGIN,
+            role = savedUser.role
+        )
+
+        sessionRepository.deleteByUserId(userId = savedUser.id!!)
 
         val token = UUID.randomUUID().toString()
         val session = Session(
-            role = user.role,
+            role = savedUser.role,
             token = token,
-            userId = user.id
+            userId = savedUser.id
         )
         sessionRepository.save(session)
-        otpRepository.deleteByEmail(request.email)
         return SessionResponse(token = token)
     }
 
 
     // RESET PASSWORD //
 
-    fun sendOtpForForgotPassword(request: ForgotPasswordRequest) {
-        val user =
+    fun sendOtpForResetPassword(request: PaswrdResetOtpRequest) {
+        val savedUser =
             userRepository.findByEmail(request.email)
-                ?: throw NotFoundException("No account found on this email, Please check email again.")
+                ?: throw NotFoundException("No account found for this Email.")
 
-        // check recent otp last 1 hour
-        val oneHourEgo = Instant.now().minus(1, ChronoUnit.HOURS)
-        val recentOtp = otpRepository.findAll()
-            .filter { otps ->
-                otps.type == "FORGOT_PASSWORD" && otps.createdAt.isAfter(oneHourEgo)
-            }
-
-        if (recentOtp.size >= 5) {
-            throw InvalidRequestException("Too many OTP requests. Please try again later")
-        }
-        val newOtp = (100000..999999).random().toString()
-        val hashedOtp = bCryptEncoder.encode(newOtp)
-        otpRepository.deleteByEmail(request.email)
-        val otpEntity = Otp(
-            type = "FORGOT_PASSWORD",
+        otpService.generateAndSendOtp(
             email = request.email,
-            otp = hashedOtp
-        )
-        otpRepository.save(otpEntity)
-
-        val purpose = "Forgot Password"
-        emailService.sendOtpMailHtmlBody(
-            to = request.email,
-            userName = user.name,
-            otp = newOtp,
-            purpose = purpose
+            name = savedUser.name,
+            type = EnumsType.FORGOT_PAASWORD,
+            role = savedUser.role,
+            hours = 24,
+            maxRequest = 3
         )
     }
 
 
-    fun validateOtpAndResetPassword(request: ResetPasswordRequest, otp: String) {
-        val user = userRepository.findByEmail(request.email)
-            ?: throw NotFoundException("No account found on this email., Please check email again.")
-        val otpEntity = otpRepository.findByEmail(request.email)
-            ?: throw InvalidRequestException("OTP already used")
-        if (otpEntity.expiresAt.isBefore(Instant.now())) {
-            throw InvalidRequestException("OTP expired, please send again.")
-        }
-        if (bCryptEncoder.matches(otp, otpEntity.otp).not()) {
-            throw InvalidRequestException("Invalid OTP.")
-        }
+    fun validateOtpAndResetPassword(request: PasswordResetRequest) {
+        val savedUser = userRepository.findByEmail(request.email)
+            ?: throw NotFoundException("No account found for this email.")
+        otpService.verifyOtp(
+            email = request.email,
+            rawOtp = request.otp,
+            type = EnumsType.FORGOT_PAASWORD,
+            role = savedUser.role
+        )
 
         // update password
-        val newHashedPassword = bCryptEncoder.encode(request.newPassword)
-        val updatedUser = user.copy(
-            passwordHash = newHashedPassword
+        val newHashedPassword = hashEncoder.encoder(request.newPassword)
+        val userToUpdate = savedUser.copy(
+            passwordHash = newHashedPassword,
         )
-        userRepository.save(updatedUser)
+        userRepository.save(userToUpdate)
 
-        // delete otp after use
-        otpRepository.deleteByEmail(request.email)
-
-        emailService.sendPasswordMailHtmlBody(
-            to = request.email,
-            userName = user.name,
-            password = request.newPassword
+        emailService.sendPasswordChangedMail(
+            to = savedUser.email,
+            userName = savedUser.name
         )
     }
-
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -1,6 +1,6 @@
 package com.example.Rapid_Assignment_backend.domain.model
 
-import org.bson.types.ObjectId
+import com.example.Rapid_Assignment_backend.utils.EnumsRole
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.index.Indexed
 import org.springframework.data.mongodb.core.mapping.Document
@@ -9,10 +9,10 @@ import java.time.temporal.ChronoUnit
 
 @Document("sessions")
 data class Session(
-    @Id val id : ObjectId? = null,
-    val role : String,
+    @Id val id: String? = null,
+    val role: EnumsRole,
     val token: String, // UUID
-    val userId: ObjectId,
-    @Indexed(expireAfter = "0s")
+    val userId: String,
+    @Indexed(name = "session_expire_idx", expireAfter = "10m")
     val expiresAt: Instant = Instant.now().plus(7, ChronoUnit.DAYS)
 )

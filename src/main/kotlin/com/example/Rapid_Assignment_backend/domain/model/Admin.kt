@@ -8,7 +8,7 @@ import java.time.Instant
 
 @Document("admin")
 data class Admin(
-    @Id val id : ObjectId? = null,
+    @Id val id : String? = null,
     val name : String,
     val email : String,
     val createdAt : Instant = Instant.now()
