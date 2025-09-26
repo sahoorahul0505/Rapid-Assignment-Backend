@@ -47,6 +47,10 @@ kotlin {
 	}
 }
 
+tasks.withType<org.springframework.boot.gradle.tasks.bundling.BootJar> {
+	archiveFileName.set("app.jar")
+}
+
 tasks.withType<Test> {
 	useJUnitPlatform()
 }
