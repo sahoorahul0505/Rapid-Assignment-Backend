@@ -38,7 +38,7 @@ dependencies {
 	implementation("com.cloudinary:cloudinary-http44:1.36.0")
 
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.13")
-
+	implementation("me.paulschwarz:spring-dotenv:3.0.0")
 }
 
 kotlin {
@@ -47,9 +47,9 @@ kotlin {
 	}
 }
 
-tasks.withType<org.springframework.boot.gradle.tasks.bundling.BootJar> {
-	archiveFileName.set("app.jar")
-}
+//tasks.withType<org.springframework.boot.gradle.tasks.bundling.BootJar> {
+//	archiveFileName.set("app.jar")
+//}
 
 tasks.withType<Test> {
 	useJUnitPlatform()
